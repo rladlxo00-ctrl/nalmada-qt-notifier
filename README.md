@@ -1,0 +1,1 @@
+# nalmada-qt-notifier
