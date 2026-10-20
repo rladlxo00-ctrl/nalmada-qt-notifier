@@ -1,0 +1,8 @@
+{
+  "name": "nalmada-qt-notifier",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "12.1.0"
+  }
+}

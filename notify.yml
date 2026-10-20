@@ -1,0 +1,53 @@
+name: 날마다 QT 알림
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # 5분마다 알림 보내기
+    - cron: "0 0 1 * *"     # 매달 1일: 자동 실행이 꺼지지 않게 기록 하나 남기기
+  workflow_dispatch:
+    inputs:
+      test_email:
+        description: "테스트 알림을 받을 이메일 (비워 두면 평소처럼 실행)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: notify
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    if: github.event.schedule != '0 0 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 준비
+        working-directory: notifier
+        run: npm install --omit=dev --no-audit --no-fund
+      - name: 알림 보내기
+        working-directory: notifier
+        run: node index.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TEST_EMAIL: ${{ inputs.test_email }}
+
+  keepalive:
+    if: github.event.schedule == '0 0 1 * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 매달 기록 남기기
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          date -u > notifier/last-keepalive.txt
+          git add notifier/last-keepalive.txt
+          git commit -m "keepalive"
+          git push
